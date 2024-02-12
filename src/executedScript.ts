@@ -9,7 +9,7 @@ export default function executedScript() {
     return Array.from({ length: Math.ceil(array.length / size) }, (_, i) => array.slice(i * size, i * size + size));
   };
 
-  if (!/https:\/\/www.eventernote.com\/users\/.+\/events/.test(location.href)) {
+  if (!/https:\/\/www.eventernote.com\/users\/.+/.test(location.href)) {
     return;
   }
   const rows = Array.from(document.querySelectorAll("div.gb_calendar_score > table > tbody > tr"));

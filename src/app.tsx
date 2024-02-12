@@ -62,7 +62,7 @@ export function App() {
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
       const currentTab = tab[0];
-      if (!/https:\/\/www.eventernote.com\/users\/.+\/events/.test(currentTab.url ?? "")) {
+      if (!/https:\/\/www.eventernote.com\/users\/.+/.test(currentTab.url ?? "")) {
         return;
       }
       if (currentTab.id) {
