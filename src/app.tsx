@@ -12,18 +12,18 @@ type Option = {
 
 type YearSelectProps = {
   options: Array<Option>;
-  defaultValue: string;
   onChange: (value: string) => void;
 };
 
-const YearSelect = ({ options, defaultValue, onChange }: YearSelectProps) => {
+const YearSelect = ({ options, onChange }: YearSelectProps) => {
   const handleChange: JSX.GenericEventHandler<HTMLSelectElement> = (e) => {
     onChange(e.currentTarget.value);
   };
   return (
     <>
       <span>表示年：</span>
-      <select id="year" defaultValue={defaultValue} onChange={handleChange}>
+      <select id="year" defaultValue="" onChange={handleChange}>
+        <option value="" label="累計"></option>
         {options.map(({ value, label }) => {
           return <option value={value} label={label}></option>;
         })}
@@ -62,7 +62,10 @@ export function App() {
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tab) {
       const currentTab = tab[0];
-      if (currentTab?.id) {
+      if (!/https:\/\/www.eventernote.com\/users\/.+\/events/.test(currentTab.url ?? "")) {
+        return;
+      }
+      if (currentTab.id) {
         chrome.scripting.executeScript({
           target: { tabId: currentTab.id },
           func: executedScript,
@@ -78,29 +81,52 @@ export function App() {
             };
           });
           setOptionYears(years);
-          if (years.length > 0) {
-            setYear(years[0].value);
-          }
           sendResponse("OK");
         });
       }
     });
   }, []);
 
-  const maxCount = optionYears
-    .flatMap((year) => {
-      return data[year.value].map((d) => d.count);
-    })
-    .reduce((prev, cur) => {
-      return Math.max(prev, cur);
-    }, 0);
+  // 年が指定されていない場合は月ごとの累計を表示する。
+  const targetData = year
+    ? data[year]
+    : Object.entries(
+        Object.values(data)
+          .flatMap((d) => d)
+          .reduce((prev, cur) => {
+            const count = cur.count;
+            return {
+              ...prev,
+              [cur.name]: (prev[cur.name] || 0) + count,
+            };
+          }, {} as Record<string, number>)
+      ).map(([name, count]) => {
+        return {
+          name: name,
+          count: count,
+        };
+      });
+
+  const maxCount = Math.max(
+    optionYears
+      .flatMap((year) => {
+        return data[year.value].map((d) => d.count);
+      })
+      .reduce((prev, cur) => {
+        return Math.max(prev, cur);
+      }, 0),
+    targetData.reduce((prev, cur) => {
+      return Math.max(prev, cur.count);
+    }, 0)
+  );
+
   return (
     <>
       <h1>イベント参加数カレンダー</h1>
       {optionYears.length ? (
         <>
-          <YearSelect options={optionYears} defaultValue={year} onChange={(value) => setYear(value)}></YearSelect>
-          <EventCalendarChart graphData={data[year] ?? []} maxCount={maxCount + (maxCount % 2)}></EventCalendarChart>
+          <YearSelect options={optionYears} onChange={(value) => setYear(value)}></YearSelect>
+          <EventCalendarChart graphData={targetData} maxCount={maxCount + (maxCount % 2)}></EventCalendarChart>
         </>
       ) : (
         "参加イベント一覧ページを開いてください"
