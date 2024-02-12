@@ -69,7 +69,6 @@ export function App() {
         });
 
         chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-          console.log(message);
           const calendar = message.calendar as Record<string, Array<ChartData>>;
           setData(calendar);
           const years = Object.keys(calendar).map((key) => {
